@@ -48,7 +48,8 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed'
+            'password' => 'required|string|min:8|confirmed',
+            'profile_photo' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $user = User::create([
@@ -56,6 +57,13 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password'])
         ]);
+
+        if ($request->hasFile('profile_photo')) {
+            $file = $request->file('profile_photo');
+            $user->profile_photo_blob = file_get_contents($file->getRealPath());
+            $user->profile_photo_mime = $file->getMimeType();
+            $user->save();
+        }
 
         Auth::login($user);
 

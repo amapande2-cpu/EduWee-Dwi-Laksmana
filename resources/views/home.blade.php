@@ -1,7 +1,7 @@
 <!-- resources/views/home.blade.php -->
 @extends('layouts.app')
 
-@section('title', 'Home - E-Learning Platform')
+@section('title', 'Home - EduWee E-Learning Platform')
 
 @section('styles')
 <link rel="stylesheet" href="{{ asset('css/home.css') }}">
@@ -18,16 +18,16 @@
     @endif
 
     <div class="hero fade-in">
-        <h1>🎓 Welcome to E-Learning Platform</h1>
-        <p>Master Scratch programming and Picto AI with our comprehensive learning materials</p>
+        <h1>🎓 Welcome to EduWee E-Learning Platform</h1>
+        <p>Embark on an interactive learning journey! Explore coding, AI, and robotics through hands-on projects and engaging challenges</p>
     </div>
 
     <!-- Join Class Section -->
     <div class="join-class-section">
         <div class="join-class-card">
-            <h2>📚 Join a Class</h2>
+            <h2>📚 Bergabung ke Kelas</h2>
             <p>Enter the class code provided by your teacher to access learning materials</p>
-            <form action="{{ route('student.joinClass') }}" method="POST" class="join-class-form">
+            <form action="{{ route('student.classes.join') }}" method="POST" class="join-class-form">
                 @csrf
                 <div class="join-form-group">
                     <input 
@@ -47,12 +47,12 @@
         </div>
 
         <!-- My Classes -->
-        @if(isset($classes) && $classes->count() > 0)
+        @if($classes instanceof \Illuminate\Support\Collection && $classes->isNotEmpty())
         <div class="my-classes">
             <h3>My Enrolled Classes</h3>
             <div class="classes-list">
                 @foreach($classes as $class)
-                <a href="{{ route('student.class.show', $class->id) }}" class="enrolled-class-card">
+                <a href="{{ route('student.classes.show', $class->id) }}" class="enrolled-class-card">
                     <div class="class-info">
                         <h4>{{ $class->name }}</h4>
                         <p>Teacher: {{ $class->teacher->name ?? 'N/A' }}</p>
@@ -69,100 +69,85 @@
         @endif
     </div>
 
-    <!-- Scratch Materials Section -->
-    <div class="section">
+    <!-- Public Materials Section -->
+    <div class="public-materials-section">
         <div class="section-header">
-            <h2>🎮 Scratch Materials</h2>
-            <a href="{{ route('student.materials.category', 'scratch') }}" class="view-all">View All →</a>
+            <h2>Public Learning Materials</h2>
+            <p>Explore free learning materials available to everyone</p>
         </div>
 
-        @if(isset($scratchMaterials) && $scratchMaterials->count() > 0)
-        <div class="materials-grid">
-            @foreach($scratchMaterials as $material)
-            <a href="{{ route('student.materials.show', $material->id) }}" class="material-card">
-                <div class="material-thumbnail">
-                    @if(isset($material->thumbnail) && $material->thumbnail)
-                        <img src="{{ asset('storage/' . $material->thumbnail) }}" alt="{{ $material->title }}">
-                    @else
-                        🎮
-                    @endif
-                    <span class="material-category">Scratch</span>
-                </div>
-                <div class="material-content">
-                    <h3 class="material-title">{{ $material->title }}</h3>
-                    <p class="material-description">{{ $material->description }}</p>
-                    <div class="material-meta">
-                        <span class="difficulty difficulty-{{ $material->difficulty }}">
-                            {{ ucfirst($material->difficulty) }}
-                        </span>
-                        @if(isset($material->duration) && $material->duration)
-                        <span class="duration">⏱️ {{ $material->duration }} min</span>
-                        @endif
-                    </div>
-                    @if(isset($material->class) && $material->class)
-                    <div class="material-class">
-                        <small>📚 {{ $material->class->name }}</small>
-                    </div>
-                    @endif
-                </div>
-            </a>
-            @endforeach
-        </div>
+        @if(isset($publicMaterials) && $publicMaterials->count() > 0)
+            <div class="materials-grid">
+                @foreach($publicMaterials as $material)
+                    <a href="{{ route('materials.public.show', $material->id) }}" class="material-card">
+                        <!-- Thumbnail -->
+                        <div class="material-thumbnail">
+                            @if($material->cover_image)
+                                <img src="{{ asset('storage/' . $material->cover_image) }}" alt="{{ $material->title }}">
+                            @else
+                                <span class="material-icon">
+                                    @if($material->category === 'coding')
+                                        🎮
+                                    @elseif($material->category === 'ai')
+                                        🤖
+                                    @elseif($material->category === 'robotics')
+                                        🤖
+                                    @else
+                                        📚
+                                    @endif
+                                </span>
+                            @endif
+
+                            <span class="material-category">
+                                @if($material->category === 'coding')
+                                    💻 Coding
+                                @elseif($material->category === 'ai')
+                                    🤖 AI
+                                @elseif($material->category === 'robotics')
+                                    🦾 Robotics
+                                @else
+                                    {{ ucfirst($material->category) }}
+                                @endif
+                            </span>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="material-content">
+                            <h3 class="material-title">{{ $material->title }}</h3>
+
+                            <p class="material-description">
+                                {{ Str::limit($material->description, 90) }}
+                            </p>
+
+                            <div class="material-meta">
+                                <span class="difficulty difficulty-{{ $material->difficulty }}">
+                                    {{ ucfirst($material->difficulty) }}
+                                </span>
+
+                                @if($material->duration)
+                                    <span class="duration">
+                                        ⏱ {{ $material->duration }} min
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+
+            <div class="public-materials-link" style="margin-top: 2rem;">
+                <a href="{{ route('materials.public') }}" class="btn btn-primary">
+                    View All Public Materials →
+                </a>
+            </div>
         @else
-        <div class="empty-state">
-            <div class="empty-state-icon">📚</div>
-            <p>No Scratch materials available yet. Join a class to see materials!</p>
-        </div>
+            <div class="public-materials-link">
+                <a href="{{ route('materials.public') }}" class="btn btn-primary">
+                    Browse Public Materials →
+                </a>
+            </div>
         @endif
     </div>
-
-    <!-- Picto AI Materials Section -->
-    <div class="section">
-        <div class="section-header">
-            <h2>🤖 Picto AI Materials</h2>
-            <a href="{{ route('student.materials.category', 'picto-ai') }}" class="view-all">View All →</a>
-        </div>
-
-        @if(isset($pictoMaterials) && $pictoMaterials->count() > 0)
-        <div class="materials-grid">
-            @foreach($pictoMaterials as $material)
-            <a href="{{ route('student.materials.show', $material->id) }}" class="material-card">
-                <div class="material-thumbnail">
-                    @if(isset($material->thumbnail) && $material->thumbnail)
-                        <img src="{{ asset('storage/' . $material->thumbnail) }}" alt="{{ $material->title }}">
-                    @else
-                        🤖
-                    @endif
-                    <span class="material-category">Picto AI</span>
-                </div>
-                <div class="material-content">
-                    <h3 class="material-title">{{ $material->title }}</h3>
-                    <p class="material-description">{{ $material->description }}</p>
-                    <div class="material-meta">
-                        <span class="difficulty difficulty-{{ $material->difficulty }}">
-                            {{ ucfirst($material->difficulty) }}
-                        </span>
-                        @if(isset($material->duration) && $material->duration)
-                        <span class="duration">⏱️ {{ $material->duration }} min</span>
-                        @endif
-                    </div>
-                    @if(isset($material->class) && $material->class)
-                    <div class="material-class">
-                        <small>📚 {{ $material->class->name }}</small>
-                    </div>
-                    @endif
-                </div>
-            </a>
-            @endforeach
-        </div>
-        @else
-        <div class="empty-state">
-            <div class="empty-state-icon">📚</div>
-            <p>No Picto AI materials available yet. Join a class to see materials!</p>
-        </div>
-        @endif
-    </div>
-</div>
 
 <script>
     setTimeout(() => {

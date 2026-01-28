@@ -1,5 +1,4 @@
 <?php
-// app/Models/Material.php
 
 namespace App\Models;
 
@@ -10,25 +9,28 @@ class Material extends Model
 {
     use HasFactory;
 
-    // Make sure class_id and teacher_id are in fillable
     protected $fillable = [
         'class_id',
         'teacher_id',
         'title',
         'category',
         'description',
-        'thumbnail',
-        'video_url',
         'duration',
         'difficulty',
-        'is_published'
+        'cover_image',
+        'quiz_url',
+        'is_published',
+        'is_public'
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
     ];
 
-    // Relationships
+    /* =======================
+        Relationships
+    ======================== */
+
     public function class()
     {
         return $this->belongsTo(ClassRoom::class, 'class_id');
@@ -38,4 +40,16 @@ class Material extends Model
     {
         return $this->belongsTo(Teacher::class);
     }
+
+   public function steps()
+    {
+        return $this->hasMany(MaterialStep::class)->orderBy('step_order');
+    }   
+
+    public function progress()
+    {
+        return $this->hasOne(MaterialProgress::class)
+            ->where('student_id', auth()->id());
+    }
+
 }

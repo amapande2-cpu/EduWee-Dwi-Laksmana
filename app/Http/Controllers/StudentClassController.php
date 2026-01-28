@@ -1,52 +1,50 @@
 <?php
-// app/Http/Controllers/StudentClassController.php
 
 namespace App\Http\Controllers;
 
 use App\Models\ClassRoom;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class StudentClassController extends Controller
 {
+  
     public function index()
     {
-        $user = Auth::user();
-        
-        // Get enrolled classes with counts
-        $classes = $user->classes()
-            ->withCount(['materials' => function($query) {
-                $query->where('is_published', true);
-            }])
+        $student = Auth::user();
+
+        $classes = $student->classes()
             ->with('teacher')
+            ->withCount([
+                // Count ONLY published materials for display
+                'materials as published_materials_count' => function ($query) {
+                    $query->where('is_published', true);
+                }
+            ])
+            ->orderBy('name')
             ->get();
 
         return view('student.classes', compact('classes'));
     }
 
-    public function show($id)
+
+    public function show(ClassRoom $class)
     {
-        $user = Auth::user();
-        
-        // Check if user is enrolled in this class
-        $class = $user->classes()
-            ->where('classes.id', $id)
-            ->with('teacher')
-            ->firstOrFail();
+        $student = Auth::user();
 
-        // Get materials for this class
-        $scratchMaterials = $class->materials()
-            ->where('category', 'scratch')
-            ->where('is_published', true)
-            ->latest()
-            ->get();
+        if (! $student->classes()->where('classes.id', $class->id)->exists()) {
+            abort(403, 'You are not enrolled in this class.');
+        }
 
-        $pictoMaterials = $class->materials()
-            ->where('category', 'picto-ai')
-            ->where('is_published', true)
-            ->latest()
-            ->get();
+    
+        $class->load([
+            'teacher',
+            'materials' => function ($query) {
+                $query->where('is_published', true)
+                      ->whereNotNull('class_id') // prevent public-only leakage
+                      ->latest();
+            }
+        ]);
 
-        return view('student.class-detail', compact('class', 'scratchMaterials', 'pictoMaterials'));
+        return view('student.class-detail', compact('class'));
     }
 }

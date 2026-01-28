@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\ClassRoom;
 use App\Models\Material;
+use App\Models\MaterialStepProgress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -21,6 +22,14 @@ class TeacherDashboardController extends Controller
         return view('teacher.dashboard', compact('classes', 'totalStudents', 'totalMaterials'));
     }
 
+    public function classesIndex()
+    {
+        $teacher = Auth::guard('teacher')->user();
+        $classes = $teacher->classes()->withCount(['students', 'materials'])->get();
+
+        return view('teacher.classes', compact('classes'));
+    }
+
     public function showClass($id)
     {
         $teacher = Auth::guard('teacher')->user();
@@ -28,6 +37,25 @@ class TeacherDashboardController extends Controller
             ->where('id', $id)
             ->with(['students', 'materials'])
             ->firstOrFail();
+
+        // Calculate completed count for each material
+        foreach ($class->materials as $material) {
+            $totalSteps = $material->steps()->count();
+            $completedStudents = 0;
+
+            foreach ($class->students as $student) {
+                $completedSteps = MaterialStepProgress::where('student_id', $student->id)
+                    ->whereIn('material_step_id', $material->steps()->pluck('id'))
+                    ->where('is_completed', true)
+                    ->count();
+
+                if ($completedSteps === $totalSteps && $totalSteps > 0) {
+                    $completedStudents++;
+                }
+            }
+
+            $material->completed_count = $completedStudents;
+        }
 
         return view('teacher.class-detail', compact('class'));
     }
@@ -47,11 +75,11 @@ class TeacherDashboardController extends Controller
             'description' => $validated['description'] ?? null,
         ]);
 
-        return redirect()->route('teacher.class.show', $class->id)
+        return redirect()->route('teacher.classes.show', $class->id)
             ->with('success', 'Class created successfully! Share code: ' . $class->class_code);
     }
 
-    public function deleteClass($id)
+    public function destroyClass($id)
     {
         $teacher = Auth::guard('teacher')->user();
         $class = ClassRoom::where('teacher_id', $teacher->id)->findOrFail($id);
@@ -81,7 +109,7 @@ class TeacherDashboardController extends Controller
 
         $class->update($validated);
 
-        return redirect()->route('teacher.class.show', $id)
+        return redirect()->route('teacher.classes.show', $id)
             ->with('success', 'Class updated successfully!');
     }
 
@@ -93,7 +121,7 @@ class TeacherDashboardController extends Controller
         // Remove student from class
         $class->students()->detach($studentId);
 
-        return redirect()->route('teacher.class.show', $classId)
+        return redirect()->route('teacher.classes.show', $classId)
             ->with('success', 'Student removed from class successfully!');
     }
 }

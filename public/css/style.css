@@ -48,29 +48,43 @@ body {
 .logo {
     font-size: 1.5rem;
     font-weight: bold;
-    color: var(--primary);
+    color:#5BB6E5;
     text-decoration: none;
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-.logo-icon {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
+.logo-img {
+    width: auto !important;
+    height: 64px !important;
+    display: block;
 }
 
 .nav-links {
     display: flex;
     gap: 2rem;
     align-items: center;
+}
+
+/* Navbar avatar */
+.nav-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.5rem;
+    border: 2px solid rgba(74, 144, 226, 0.25);
+}
+
+.nav-avatar--fallback {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    font-weight: 700;
+    font-size: 0.95rem;
 }
 
 .nav-links a {
@@ -121,6 +135,7 @@ body {
     background: transparent;
     border: 2px solid var(--primary);
     color: var(--primary);
+    text-align: center;
 }
 
 .btn-outline:hover {
@@ -147,11 +162,34 @@ body {
 
 /* Footer */
 .footer {
-    background: var(--text-dark);
+    background: #008fd6;
     color: var(--white);
     padding: 2rem;
     text-align: center;
     margin-top: 4rem;
+
+    /* Reveal-on-scroll footer */
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin-top: 0;
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 220ms ease, opacity 220ms ease;
+    z-index: 1000;
+}
+
+/* Ensure content isn't hidden behind the fixed footer when it reveals */
+main {
+    padding-bottom: 6rem;
+}
+
+.footer.is-visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .footer p {
@@ -183,8 +221,9 @@ body {
     .nav-links {
         position: absolute;
         top: 100%;
-        left: 0;
         right: 0;
+        left: auto;
+        width: 200px;
         background: var(--white);
         flex-direction: column;
         padding: 1rem;

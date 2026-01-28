@@ -10,7 +10,7 @@
 <body>
     <div class="auth-container">
         <div class="auth-left">
-            <div class="auth-icon">🚀</div>
+            <img src="{{ asset('images/logo_eduwee.png') }}" alt="its should be logo" class="logo-img">
             <h1>Start Learning!</h1>
             <p>Create an account and unlock access to our comprehensive Scratch and Picto AI learning materials.</p>
         </div>
@@ -21,7 +21,7 @@
                 <p>Fill in your details to get started</p>
             </div>
 
-            <form action="{{ route('student.register.post') }}" method="POST">
+            <form action="{{ route('student.register.post') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 
                 <div class="form-group">
@@ -50,6 +50,19 @@
                         placeholder="your.email@example.com"
                     >
                     @error('email')
+                        <div class="error">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="form-group">
+                    <label for="profile_photo">Profile Photo (Optional)</label>
+                    <input
+                        type="file"
+                        id="profile_photo"
+                        name="profile_photo"
+                        accept="image/png,image/jpeg,image/webp"
+                    >
+                    @error('profile_photo')
                         <div class="error">{{ $message }}</div>
                     @enderror
                 </div>

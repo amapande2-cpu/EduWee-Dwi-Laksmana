@@ -10,7 +10,7 @@
 <body>
     <div class="auth-container">
         <div class="auth-left" style="background: linear-gradient(135deg, #667eea, #764ba2);">
-            <div class="auth-icon">👨‍🏫</div>
+            <img src="{{ asset('images/logo_eduwee.png') }}" alt="its should be logo" class="logo-img">
             <h1>Welcome Back, Teacher!</h1>
             <p>Login to manage your classes and create amazing learning materials for your students.</p>
         </div>

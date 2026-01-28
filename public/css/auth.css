@@ -177,3 +177,9 @@ body {
         padding: 2rem;
     }
 }
+
+.logo-img {
+    width: 64px !important;
+    height: 64px !important;
+    display: block;
+}

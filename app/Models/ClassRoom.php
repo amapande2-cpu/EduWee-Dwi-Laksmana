@@ -1,5 +1,4 @@
 <?php
-// app/Models/ClassRoom.php
 
 namespace App\Models;
 
@@ -25,33 +24,82 @@ class ClassRoom extends Model
         'is_active' => 'boolean',
     ];
 
-    // Auto-generate class code when creating
-    protected static function boot()
+    /**
+     * Auto-generate class code on create
+     */
+    protected static function booted()
     {
-        parent::boot();
-
-        static::creating(function ($class) {
+        static::creating(function (self $class) {
             if (empty($class->class_code)) {
                 $class->class_code = strtoupper(Str::random(6));
             }
         });
     }
 
+    /* ==============================
+     |  RELATIONSHIPS
+     |==============================*/
+
+    /**
+     * Class owner (teacher)
+     */
     public function teacher()
     {
-        return $this->belongsTo(Teacher::class);
+        return $this->belongsTo(Teacher::class, 'teacher_id');
     }
 
+    /**
+     * Students enrolled in the class
+     */
     public function students()
     {
-        return $this->belongsToMany(User::class, 'class_student', 'class_id', 'user_id')
-            ->withTimestamps()
-            ->withPivot('joined_at')
-            ->using(\Illuminate\Database\Eloquent\Relations\Pivot::class);
+        return $this->belongsToMany(
+            User::class,
+            'class_student',
+            'class_id',
+            'user_id'
+        )
+        ->withTimestamps()
+        ->withPivot('joined_at');
     }
 
+    /**
+     * All materials (teacher view)
+     */
     public function materials()
     {
         return $this->hasMany(Material::class, 'class_id');
+    }
+
+    /**
+     * Only published materials (student view)
+     */
+    public function publishedMaterials()
+    {
+        return $this->hasMany(Material::class, 'class_id')
+            ->where('is_published', true)
+            ->orderByDesc('created_at');
+    }
+
+    /* ==============================
+     |  SCOPES
+     |==============================*/
+
+    /**
+     * Active classes only
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Class visibility check
+     */
+    public function isStudentEnrolled(int $userId): bool
+    {
+        return $this->students()
+            ->where('users.id', $userId)
+            ->exists();
     }
 }

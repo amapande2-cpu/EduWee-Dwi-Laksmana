@@ -7,23 +7,34 @@
     <title>Teacher Dashboard - E-Learning Platform</title>
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/teacher-dashboard.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/profile.css') }}">
+    <link rel="icon" href="{{ asset('images/logo_eduwee.png') }}">
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
             <a href="{{ route('teacher.dashboard') }}" class="logo">
-                <div class="logo-icon">EL</div>
+               <img src="{{ asset('images/logo_eduwee.png') }}" alt="its should be logo" class="logo-img">
                 <span>Teacher Dashboard</span>
             </a>
 
-            <div class="nav-links">
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+            <div class="nav-links" id="navLinks">
                 <a href="{{ route('teacher.dashboard') }}">Dashboard</a>
+                <a href="{{ route('teacher.classes.index') }}">Classes</a>
                 <div class="user-info">
-                    <span class="user-name">👨‍🏫 {{ Auth::guard('teacher')->user()->name }}</span>
-                    <form action="{{ route('teacher.logout') }}" method="POST" style="display: inline;">
-                        @csrf
-                        <button type="submit" class="btn btn-outline">Logout</button>
-                    </form>
+                    <a class="user-name profile-link" href="{{ route('teacher.profile.show') }}">
+                        @if(Auth::guard('teacher')->user()->hasProfilePhoto())
+                            <img class="nav-avatar" src="{{ Auth::guard('teacher')->user()->profile_photo_data_uri }}" alt="Profile photo">
+                        @else
+                            <span class="nav-avatar nav-avatar--fallback">{{ strtoupper(substr(Auth::guard('teacher')->user()->name, 0, 1)) }}</span>
+                        @endif
+                        <span class="profile-link__text">
+                            <span class="profile-link__name">{{ Auth::guard('teacher')->user()->name }}</span>
+                            <span class="profile-link__meta">Teacher</span>
+                        </span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -44,7 +55,7 @@
                 <div class="stat-card">
                     <div class="stat-icon">📚</div>
                     <div class="stat-content">
-                        <h3>{{ $classes->count() }}</h3>
+                        <h3>{{ is_object($classes) && method_exists($classes, 'count') ? $classes->count() : 0 }}</h3>
                         <p>Total Classes</p>
                     </div>
                 </div>
@@ -74,7 +85,7 @@
 
             <!-- Create Class Form (Hidden by default) -->
             <div id="createClassForm" class="create-form" style="display: none;">
-                <form action="{{ route('teacher.class.create') }}" method="POST">
+                <form action="{{ route('teacher.classes.store') }}" method="POST">
                     @csrf
                     <div class="form-row">
                         <div class="form-group">
@@ -94,7 +105,7 @@
             </div>
 
             <!-- Classes Grid -->
-            @if($classes->count() > 0)
+            @if(is_object($classes) && method_exists($classes, 'count') && $classes->count() > 0)
             <div class="classes-grid">
                 @foreach($classes as $class)
                 <div class="class-card">
@@ -104,7 +115,7 @@
                     </div>
                     
                     @if($class->description)
-                    <p class="class-description">{{ $class->description }}</p>
+                    <p class="class-description">{{ Str::limit($class->description, 300) }}</p>
                     @endif
 
                     <div class="class-stats">
@@ -119,8 +130,8 @@
                     </div>
 
                     <div class="class-actions">
-                        <a href="{{ route('teacher.class.show', $class->id) }}" class="btn btn-primary">View Class</a>
-                        <form action="{{ route('teacher.class.delete', $class->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure? This will delete all materials in this class!')">
+                        <a href="{{ route('teacher.classes.show', $class->id) }}" class="btn btn-primary">View Class</a>
+                        <form action="{{ route('teacher.classes.destroy', $class->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure? This will delete all materials in this class!')">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-danger">Delete</button>
@@ -141,8 +152,10 @@
     </main>
 
     <footer class="footer">
-        <p>&copy; 2024 E-Learning Platform - Teacher Portal</p>
+        <p>&copy; 2026 EduWee E-Learning Platform. All rights reserved.</p>
     </footer>
+
+    <script src="{{ asset('js/footer-reveal.js') }}"></script>
 
     <script>
         function toggleCreateForm() {
@@ -154,6 +167,22 @@
                 form.style.display = 'none';
             }
         }
+
+        function toggleMobileMenu() {
+            const navLinks = document.getElementById('navLinks');
+            navLinks.classList.toggle('active');
+        }
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const nav = document.querySelector('.nav-container');
+            const navLinks = document.getElementById('navLinks');
+            const menuBtn = document.querySelector('.mobile-menu-btn');
+
+            if (!nav.contains(event.target) && !menuBtn.contains(event.target)) {
+                navLinks.classList.remove('active');
+            }
+        });
 
         // Auto-hide alerts after 5 seconds
         setTimeout(() => {

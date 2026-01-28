@@ -7,19 +7,34 @@
     <title>Edit Class - {{ $class->name }}</title>
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/teacher-dashboard.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/profile.css') }}">
+    <link rel="icon" href="{{ asset('images/logo_eduwee.png') }}">
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
             <a href="{{ route('teacher.dashboard') }}" class="logo">
-                <div class="logo-icon">EL</div>
+               <img src="{{ asset('images/logo_eduwee.png') }}" alt="its should be logo" class="logo-img">
                 <span>Teacher Dashboard</span>
             </a>
 
-            <div class="nav-links">
-                <a href="{{ route('teacher.class.show', $class->id) }}">← Back to Class</a>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+            <div class="nav-links" id="navLinks">
+                <a href="{{ route('teacher.dashboard') }}">Dashboard</a>
+                <a href="{{ route('teacher.classes.index') }}">Classes</a>
                 <div class="user-info">
-                    <span class="user-name">👨‍🏫 {{ Auth::guard('teacher')->user()->name }}</span>
+                    <a class="user-name profile-link" href="{{ route('teacher.profile.show') }}">
+                        @if(Auth::guard('teacher')->user()->hasProfilePhoto())
+                            <img class="nav-avatar" src="{{ Auth::guard('teacher')->user()->profile_photo_data_uri }}" alt="Profile photo">
+                        @else
+                            <span class="nav-avatar nav-avatar--fallback">{{ strtoupper(substr(Auth::guard('teacher')->user()->name, 0, 1)) }}</span>
+                        @endif
+                        <span class="profile-link__text">
+                            <span class="profile-link__name">{{ Auth::guard('teacher')->user()->name }}</span>
+                            <span class="profile-link__meta">Teacher</span>
+                        </span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -33,7 +48,7 @@
                     <p>Update class information</p>
                 </div>
 
-                <form action="{{ route('teacher.class.update', $class->id) }}" method="POST" class="material-form">
+                <form action="{{ route('teacher.classes.update', $class->id) }}" method="POST" class="material-form">
                     @csrf
                     @method('PUT')
 
@@ -72,7 +87,7 @@
 
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Update Class</button>
-                        <a href="{{ route('teacher.class.show', $class->id) }}" class="btn btn-outline">Cancel</a>
+                        <a href="{{ route('teacher.classes.show', $class->id) }}" class="btn btn-outline">Cancel</a>
                     </div>
                 </form>
             </div>
@@ -80,7 +95,9 @@
     </main>
 
     <footer class="footer">
-        <p>&copy; 2024 E-Learning Platform - Teacher Portal</p>
+        <p>&copy; 2026 EduWee E-Learning Platform. All rights reserved.</p>
     </footer>
+
+    <script src="{{ asset('js/footer-reveal.js') }}"></script>
 </body>
 </html>

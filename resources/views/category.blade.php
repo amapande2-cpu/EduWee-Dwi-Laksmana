@@ -11,13 +11,28 @@
 <div class="container">
     <div class="category-header">
         <div class="category-icon">
-            @if($category === 'scratch')
+            @if($category === 'coding')
                 🎮
+            @elseif($category === 'ai')
+                🤖
+            @elseif($category === 'robotics')
+                🤖
             @else
                 🤖
             @endif
         </div>
-        <h1>{{ ucfirst(str_replace('-', ' ', $category)) }} Materials</h1>
+        <h1>
+            @if($category === 'coding')
+                🎮 Coding
+            @elseif($category === 'ai')
+                🤖 AI & Robotics
+            @elseif($category === 'robotics')
+                🤖 Robotics
+            @else
+                {{ ucfirst(str_replace('-', ' ', $category)) }}
+            @endif
+            Materials
+        </h1>
         <p>Explore all available learning materials</p>
     </div>
 
@@ -26,11 +41,15 @@
         @foreach($materials as $material)
         <a href="{{ route('student.materials.show', $material->id) }}" class="material-card">
             <div class="material-thumbnail">
-                @if($material->thumbnail)
-                    <img src="{{ asset('storage/' . $material->thumbnail) }}" alt="{{ $material->title }}">
+                @if($material->cover_image)
+                    <img src="{{ asset('storage/' . $material->cover_image) }}" alt="{{ $material->title }}">
                 @else
-                    @if($category === 'scratch')
+                    @if($category === 'coding')
                         🎮
+                    @elseif($category === 'ai')
+                        🤖
+                    @elseif($category === 'robotics')
+                        🤖
                     @else
                         🤖
                     @endif
@@ -55,7 +74,19 @@
     <div class="empty-state">
         <div class="empty-state-icon">📚</div>
         <h2>No Materials Yet</h2>
-        <p>There are no {{ ucfirst(str_replace('-', ' ', $category)) }} materials available at the moment.</p>
+        <p>
+            There are no
+            @if($category === 'coding')
+                Coding
+            @elseif($category === 'ai')
+                AI & Robotics
+            @elseif($category === 'robotics')
+                Robotics
+            @else
+                {{ ucfirst(str_replace('-', ' ', $category)) }}
+            @endif
+            materials available at the moment.
+        </p>
         <p>Please check back later for new content!</p>
     </div>
     @endif

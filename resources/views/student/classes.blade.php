@@ -17,7 +17,7 @@
     @if($classes->count() > 0)
     <div class="classes-grid">
         @foreach($classes as $class)
-        <a href="{{ route('student.class.show', $class->id) }}" class="class-card">
+        <a href="{{ route('student.classes.show', $class->id) }}" class="class-card">
             <div class="class-card-header">
                 <h3>{{ $class->name }}</h3>
                 <span class="class-code">{{ $class->class_code }}</span>

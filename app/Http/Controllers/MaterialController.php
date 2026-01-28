@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/MaterialController.php
 
 namespace App\Http\Controllers;
 
@@ -10,112 +9,186 @@ use Illuminate\Support\Facades\Auth;
 
 class MaterialController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | PUBLIC MATERIALS (NO AUTH)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Public materials listing (published only)
+     */
+    public function publicIndex()
+    {
+        $materials = Material::query()
+            // ->where('is_public', true) // Temporarily commented for debugging
+            ->with('class', 'teacher')
+            ->latest()
+            ->paginate(12);
+
+        return view('public.materials', compact('materials'));
+    }
+
+    /**
+     * Public material detail
+     */
+    public function showPublic($id)
+    {
+        $material = Material::query()
+            // ->where('is_public', true) // Temporarily commented for debugging
+            ->with(['class', 'teacher', 'steps'])
+            ->findOrFail($id);
+
+        return view('material-detail', compact('material') + ['is_public' => true]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | STUDENT SIDE
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Student dashboard (home)
+     */
     public function index()
     {
         $user = Auth::user();
-        
-        // Get enrolled class IDs - handle case when no classes enrolled
+
         $enrolledClassIds = $user->classes()->pluck('classes.id');
 
-        // If no classes, return empty collections
         if ($enrolledClassIds->isEmpty()) {
             $scratchMaterials = collect();
-            $pictoMaterials = collect();
+            $pictoMaterials   = collect();
         } else {
-            // Get materials from enrolled classes
-            $scratchMaterials = Material::whereIn('class_id', $enrolledClassIds)
+            $scratchMaterials = Material::query()
+                ->whereIn('class_id', $enrolledClassIds)
                 ->where('category', 'scratch')
                 ->where('is_published', true)
-                ->with('class') // Load class relationship
+                ->with('class')
                 ->latest()
                 ->take(6)
                 ->get();
 
-            $pictoMaterials = Material::whereIn('class_id', $enrolledClassIds)
+            $pictoMaterials = Material::query()
+                ->whereIn('class_id', $enrolledClassIds)
                 ->where('category', 'picto-ai')
                 ->where('is_published', true)
-                ->with('class') // Load class relationship
+                ->with('class')
                 ->latest()
                 ->take(6)
                 ->get();
         }
 
-        // Get enrolled classes with material count
         $classes = $user->classes()
             ->withCount('materials')
             ->with('teacher')
             ->get();
 
-        return view('home', compact('scratchMaterials', 'pictoMaterials', 'classes'));
+        $publicMaterials = Material::query()
+            ->where('is_published', true)
+            ->with('teacher')
+            ->latest()
+            ->take(4)
+            ->get();
+
+        return view('home', compact(
+            'scratchMaterials',
+            'pictoMaterials',
+            'classes',
+            'publicMaterials'
+        ));
     }
 
-    public function category($category)
+    /**
+     * Student material detail (must be enrolled)
+     */
+   public function show($id)
     {
         $user = Auth::user();
+
         $enrolledClassIds = $user->classes()->pluck('classes.id');
 
-        $materials = Material::whereIn('class_id', $enrolledClassIds)
+        $material = Material::query()
+            ->whereIn('class_id', $enrolledClassIds)
+            ->with(['class', 'steps'])
+            ->findOrFail($id);
+
+        // 🚨 ACCESS CONTROL
+        if (! $material->is_published && Auth::guard('teacher')->guest()) {
+            abort(403);
+        }
+
+        $relatedMaterials = Material::query()
+            ->where('category', $material->category)
+            ->whereIn('class_id', $enrolledClassIds)
+            ->where('id', '!=', $material->id)
+            ->where('is_published', true)
+            ->with('class')
+            ->take(3)
+            ->get();
+
+        return view('student.material-detail', compact(
+            'material',
+            'relatedMaterials'
+        ));
+    }
+
+
+    /**
+     * Category page (student)
+     */
+    public function category(string $category)
+    {
+        $user = Auth::user();
+
+        $enrolledClassIds = $user->classes()->pluck('classes.id');
+
+        $materials = Material::query()
+            ->whereIn('class_id', $enrolledClassIds)
             ->where('category', $category)
             ->where('is_published', true)
-            ->with('class') // Load class relationship
+            ->with('class')
             ->latest()
             ->get();
 
         return view('category', compact('materials', 'category'));
     }
 
-    public function show($id)
-    {
-        $user = Auth::user();
-        $enrolledClassIds = $user->classes()->pluck('classes.id');
-
-        $material = Material::whereIn('class_id', $enrolledClassIds)
-            ->with('class') // Load class relationship
-            ->findOrFail($id);
-        
-        $relatedMaterials = Material::where('category', $material->category)
-            ->whereIn('class_id', $enrolledClassIds)
-            ->where('id', '!=', $id)
-            ->where('is_published', true)
-            ->with('class') // Load class relationship
-            ->take(3)
-            ->get();
-
-        return view('material-detail', compact('material', 'relatedMaterials'));
-    }
-
+    /**
+     * Join class using class code
+     */
     public function joinClass(Request $request)
     {
-        try {
-            $validated = $request->validate([
-                'class_code' => 'required|string|size:6'
-            ]);
+        $request->validate([
+            'class_code' => 'required|string|size:6',
+        ]);
 
-            $class = ClassRoom::where('class_code', strtoupper($validated['class_code']))
-                ->where('is_active', true)
-                ->first();
+        $class = ClassRoom::query()
+            ->where('class_code', strtoupper($request->class_code))
+            ->where('is_active', true)
+            ->first();
 
-            if (!$class) {
-                return redirect()->route('student.home')
-                    ->with('error', 'Invalid class code. Please check and try again.');
-            }
-
-            $user = Auth::user();
-
-            // Check if already enrolled
-            if ($user->classes()->where('classes.id', $class->id)->exists()) {
-                return redirect()->route('student.home')
-                    ->with('error', 'You are already enrolled in this class!');
-            }
-
-            $user->classes()->attach($class->id, ['joined_at' => now()]);
-
-            return redirect()->route('student.home')
-                ->with('success', 'Successfully joined ' . $class->name . '!');
-        } catch (\Exception $e) {
-            \Log::error('Join class error: ' . $e->getMessage());
-            return redirect()->route('student.home')
-                ->with('error', 'An error occurred. Please try again.');
+        if (! $class) {
+            return redirect()
+                ->route('student.home')
+                ->with('error', 'Invalid class code.');
         }
+
+        $user = Auth::user();
+
+        if ($user->classes()->where('classes.id', $class->id)->exists()) {
+            return redirect()
+                ->route('student.home')
+                ->with('error', 'You are already enrolled in this class.');
+        }
+
+        $user->classes()->attach($class->id, [
+            'joined_at' => now(),
+        ]);
+
+        return redirect()
+            ->route('student.home')
+            ->with('success', 'Successfully joined ' . $class->name);
     }
 }

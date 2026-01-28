@@ -10,7 +10,7 @@
 <body>
     <div class="auth-container">
         <div class="auth-left">
-            <div class="auth-icon">🎓</div>
+            <img src="{{ asset('images/logo_eduwee.png') }}" alt="its should be logo" class="logo-img">
             <h1>Welcome Back!</h1>
             <p>Login to continue your learning journey with Scratch and Picto AI materials.</p>
         </div>

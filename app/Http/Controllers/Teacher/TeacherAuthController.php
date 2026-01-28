@@ -45,7 +45,8 @@ class TeacherAuthController extends Controller
             'email' => 'required|string|email|max:255|unique:teachers',
             'phone' => 'nullable|string|max:20',
             'subject' => 'nullable|string|max:100',
-            'password' => 'required|string|min:8|confirmed'
+            'password' => 'required|string|min:8|confirmed',
+            'profile_photo' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $teacher = Teacher::create([
@@ -55,6 +56,13 @@ class TeacherAuthController extends Controller
             'subject' => $validated['subject'] ?? null,
             'password' => Hash::make($validated['password'])
         ]);
+
+        if ($request->hasFile('profile_photo')) {
+            $file = $request->file('profile_photo');
+            $teacher->profile_photo_blob = file_get_contents($file->getRealPath());
+            $teacher->profile_photo_mime = $file->getMimeType();
+            $teacher->save();
+        }
 
         Auth::guard('teacher')->login($teacher);
 

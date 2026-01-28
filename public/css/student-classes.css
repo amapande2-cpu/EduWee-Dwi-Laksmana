@@ -167,6 +167,7 @@
     padding: 0.5rem 1rem;
     border-radius: 10px;
     font-size: 0.95rem;
+    text-align: center;
 }
 
 .empty-state-small {

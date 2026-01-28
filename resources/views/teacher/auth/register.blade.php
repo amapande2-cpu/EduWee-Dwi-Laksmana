@@ -10,7 +10,7 @@
 <body>
     <div class="auth-container">
         <div class="auth-left" style="background: linear-gradient(135deg, #764ba2, #667eea);">
-            <div class="auth-icon">🎓</div>
+             <img src="{{ asset('images/logo_eduwee.png') }}" alt="its should be logo" class="logo-img">
             <h1>Join as a Teacher!</h1>
             <p>Create your account and start teaching. Build classes, share materials, and inspire students.</p>
         </div>
@@ -21,7 +21,7 @@
                 <p>Fill in your details to get started</p>
             </div>
 
-            <form action="{{ route('teacher.register.post') }}" method="POST">
+            <form action="{{ route('teacher.register.post') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 
                 <div class="form-group">
@@ -78,6 +78,19 @@
                         placeholder="e.g., Computer Science, STEM"
                     >
                     @error('subject')
+                        <div class="error">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="form-group">
+                    <label for="profile_photo">Profile Photo (Optional)</label>
+                    <input
+                        type="file"
+                        id="profile_photo"
+                        name="profile_photo"
+                        accept="image/png,image/jpeg,image/webp"
+                    >
+                    @error('profile_photo')
                         <div class="error">{{ $message }}</div>
                     @enderror
                 </div>

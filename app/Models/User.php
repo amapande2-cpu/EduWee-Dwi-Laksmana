@@ -1,5 +1,4 @@
 <?php
-// app/Models/User.php - Complete updated version
 
 namespace App\Models;
 
@@ -14,6 +13,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'profile_photo_blob',
+        'profile_photo_mime',
     ];
 
     protected $hidden = [
@@ -26,11 +27,37 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    // Add this relationship with explicit foreign keys
+    /**
+     * Inline (data URI) source for profile photo.
+     *
+     * Note: embeds the image into HTML; keep uploads small.
+     */
+    public function getProfilePhotoDataUriAttribute(): ?string
+    {
+        if (empty($this->profile_photo_blob) || empty($this->profile_photo_mime)) {
+            return null;
+        }
+
+        return 'data:' . $this->profile_photo_mime . ';base64,' . base64_encode($this->profile_photo_blob);
+    }
+
+    public function hasProfilePhoto(): bool
+    {
+        return !empty($this->profile_photo_blob) && !empty($this->profile_photo_mime);
+    }
+
+    /**
+     * Classes joined by the student
+     */
     public function classes()
     {
-        return $this->belongsToMany(ClassRoom::class, 'class_student', 'user_id', 'class_id')
-            ->withTimestamps()
-            ->withPivot('joined_at');
+        return $this->belongsToMany(
+            ClassRoom::class,
+            'class_student',   // pivot table
+            'user_id',         // THIS user model FK
+            'class_id'         // class FK
+        )
+        ->withTimestamps()
+        ->withPivot('joined_at');
     }
 }

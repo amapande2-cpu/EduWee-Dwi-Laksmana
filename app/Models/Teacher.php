@@ -17,6 +17,8 @@ class Teacher extends Authenticatable
         'password',
         'phone',
         'subject',
+        'profile_photo_blob',
+        'profile_photo_mime',
     ];
 
     protected $hidden = [
@@ -27,6 +29,25 @@ class Teacher extends Authenticatable
     protected $casts = [
         'password' => 'hashed',
     ];
+
+    /**
+     * Inline (data URI) source for profile photo.
+     *
+     * Note: embeds the image into HTML; keep uploads small.
+     */
+    public function getProfilePhotoDataUriAttribute(): ?string
+    {
+        if (empty($this->profile_photo_blob) || empty($this->profile_photo_mime)) {
+            return null;
+        }
+
+        return 'data:' . $this->profile_photo_mime . ';base64,' . base64_encode($this->profile_photo_blob);
+    }
+
+    public function hasProfilePhoto(): bool
+    {
+        return !empty($this->profile_photo_blob) && !empty($this->profile_photo_mime);
+    }
 
     public function classes()
     {

@@ -7,23 +7,34 @@
     <title>{{ $class->name }} - Teacher Dashboard</title>
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/teacher-dashboard.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/profile.css') }}">
+    <link rel="icon" href="{{ asset('images/logo_eduwee.png') }}">
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
             <a href="{{ route('teacher.dashboard') }}" class="logo">
-                <div class="logo-icon">EL</div>
+               <img src="{{ asset('images/logo_eduwee.png') }}" alt="its should be logo" class="logo-img">
                 <span>Teacher Dashboard</span>
             </a>
 
-            <div class="nav-links">
-                <a href="{{ route('teacher.dashboard') }}">← Back to Dashboard</a>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+            <div class="nav-links" id="navLinks">
+                <a href="{{ route('teacher.dashboard') }}">Dashboard</a>
+                <a href="{{ route('teacher.classes.index') }}">Classes</a>
                 <div class="user-info">
-                    <span class="user-name">👨‍🏫 {{ Auth::guard('teacher')->user()->name }}</span>
-                    <form action="{{ route('teacher.logout') }}" method="POST" style="display: inline;">
-                        @csrf
-                        <button type="submit" class="btn btn-outline">Logout</button>
-                    </form>
+                    <a class="user-name profile-link" href="{{ route('teacher.profile.show') }}">
+                        @if(Auth::guard('teacher')->user()->hasProfilePhoto())
+                            <img class="nav-avatar" src="{{ Auth::guard('teacher')->user()->profile_photo_data_uri }}" alt="Profile photo">
+                        @else
+                            <span class="nav-avatar nav-avatar--fallback">{{ strtoupper(substr(Auth::guard('teacher')->user()->name, 0, 1)) }}</span>
+                        @endif
+                        <span class="profile-link__text">
+                            <span class="profile-link__name">{{ Auth::guard('teacher')->user()->name }}</span>
+                            <span class="profile-link__meta">Teacher</span>
+                        </span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -40,7 +51,7 @@
                 <div>
                     <h1>{{ $class->name }}</h1>
                     @if($class->description)
-                    <p class="class-description">{{ $class->description }}</p>
+                    <p class="class-description">{{ Str::limit($class->description, 400) }}</p>
                     @endif
                 </div>
                 <div class="header-actions">
@@ -48,7 +59,7 @@
                         <span class="code-label">Class Code:</span>
                         <span class="code-value">{{ $class->class_code }}</span>
                     </div>
-                    <a href="{{ route('teacher.class.edit', $class->id) }}" class="btn btn-outline">✏️ Edit Class</a>
+                    <a href="{{ route('teacher.classes.edit', $class->id) }}" class="btn btn-outline">✏️ Edit Class</a>
                 </div>
             </div>
 
@@ -69,28 +80,12 @@
                         <p>Total Materials</p>
                     </div>
                 </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon">🎮</div>
-                    <div class="stat-content">
-                        <h3>{{ $class->materials->where('category', 'scratch')->count() }}</h3>
-                        <p>Scratch Materials</p>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon">🤖</div>
-                    <div class="stat-content">
-                        <h3>{{ $class->materials->where('category', 'picto-ai')->count() }}</h3>
-                        <p>Picto AI Materials</p>
-                    </div>
-                </div>
             </div>
 
             <!-- Materials Section -->
             <div class="section-header">
                 <h2>Learning Materials</h2>
-                <a href="{{ route('teacher.material.create', $class->id) }}" class="btn btn-primary">+ Add Material</a>
+                <a href="{{ route('teacher.materials.create', $class->id) }}" class="btn btn-primary">+ Add Material</a>
             </div>
 
             @if($class->materials->count() > 0)
@@ -117,11 +112,14 @@
                             @if($material->duration)
                             <span class="badge badge-duration">⏱️ {{ $material->duration }} min</span>
                             @endif
+                            <a href="{{ route('teacher.materials.progress', [$class->id, $material->id]) }}" class="badge badge-completed">
+                                ✅ {{ $material->completed_count ?? 0 }} completed
+                            </a>
                         </div>
                     </div>
                     <div class="material-actions">
-                        <a href="{{ route('teacher.material.edit', [$class->id, $material->id]) }}" class="btn btn-outline">Edit</a>
-                        <form action="{{ route('teacher.material.destroy', [$class->id, $material->id]) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this material?')">
+                        <a href="{{ route('teacher.materials.edit', [$class->id, $material->id]) }}" class="btn btn-outline">Edit</a>
+                        <form action="{{ route('teacher.materials.destroy', [$class->id, $material->id]) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this material?')">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-danger">Delete</button>
@@ -135,7 +133,7 @@
                 <div class="empty-state-icon">📚</div>
                 <h3>No Materials Yet</h3>
                 <p>Add your first learning material to this class!</p>
-                <a href="{{ route('teacher.material.create', $class->id) }}" class="btn btn-primary">Add First Material</a>
+                <a href="{{ route('teacher.materials.create', $class->id) }}" class="btn btn-primary">Add First Material</a>
             </div>
             @endif
 
@@ -147,16 +145,25 @@
             @if($class->students->count() > 0)
             <div class="students-grid">
                 @foreach($class->students as $student)
-                <div class="student-card">
-                    <div class="student-avatar">{{ substr($student->name, 0, 1) }}</div>
+                <div class="student-card" onclick="openStudentModal('{{ $student->name }}', '{{ $student->email }}', '{{ $student->hasProfilePhoto() ? $student->profile_photo_data_uri : '' }}', '{{ $student->pivot && $student->pivot->joined_at ? date('M d, Y', strtotime($student->pivot->joined_at)) : 'Recently joined' }}', '{{ strtoupper(substr($student->name, 0, 1)) }}')">
+                    @if($student->hasProfilePhoto())
+                        <img class="student-avatar" src="{{ $student->profile_photo_data_uri }}" alt="Profile photo">
+                    @else
+                        <div class="student-avatar">{{ strtoupper(substr($student->name, 0, 1)) }}</div>
+                    @endif
                     <div class="student-info">
                         <h4>{{ $student->name }}</h4>
-                        <p>{{ $student->email }}</p>
-                        @if($student->pivot && $student->pivot->joined_at)
-                        <small>Joined: {{ date('M d, Y', strtotime($student->pivot->joined_at)) }}</small>
-                        @else
-                        <small>Recently joined</small>
-                        @endif
+                        <p class="student-email">{{ $student->email }}</p>
+                        <div class="student-details">
+                            @if($student->pivot && $student->pivot->joined_at)
+                            <small>
+                                <span class="join-label">joined:</span><br>
+                                {{ date('M d, Y', strtotime($student->pivot->joined_at)) }}
+                            </small>
+                            @else
+                            <small>Recently joined</small>
+                            @endif
+                        </div>
                     </div>
                 </div>
                 @endforeach
@@ -172,10 +179,75 @@
     </main>
 
     <footer class="footer">
-        <p>&copy; 2024 E-Learning Platform - Teacher Portal</p>
+        <p>&copy; 2026 EduWee E-Learning Platform. All rights reserved.</p>
     </footer>
 
+    <!-- Student Detail Modal -->
+    <div id="studentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeStudentModal()">&times;</span>
+            <div class="student-detail-card">
+                <div id="modalAvatar" class="student-detail-avatar"></div>
+                <div class="student-detail-info">
+                    <h2 id="modalName"></h2>
+                    <p id="modalEmail" class="student-detail-email"></p>
+                    <div class="student-detail-joined">
+                        <span class="join-label">joined:</span><br>
+                        <span id="modalJoinedDate"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/footer-reveal.js') }}"></script>
+
     <script>
+        function toggleMobileMenu() {
+            const navLinks = document.getElementById('navLinks');
+            navLinks.classList.toggle('active');
+        }
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const nav = document.querySelector('.nav-container');
+            const navLinks = document.getElementById('navLinks');
+            const menuBtn = document.querySelector('.mobile-menu-btn');
+
+            if (!nav.contains(event.target) && !menuBtn.contains(event.target)) {
+                navLinks.classList.remove('active');
+            }
+        });
+
+        // Modal functions
+        function openStudentModal(name, email, photoUri, joinedDate, initial) {
+            document.getElementById('modalName').textContent = name;
+            document.getElementById('modalEmail').textContent = email;
+            document.getElementById('modalJoinedDate').textContent = joinedDate;
+
+            const avatarDiv = document.getElementById('modalAvatar');
+            if (photoUri) {
+                avatarDiv.innerHTML = `<img src="${photoUri}" alt="Profile photo" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+            } else {
+                avatarDiv.innerHTML = initial;
+            }
+
+            document.getElementById('studentModal').style.display = 'block';
+        }
+
+        function closeStudentModal() {
+            document.getElementById('studentModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('studentModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Auto-hide alerts
         setTimeout(() => {
             const alerts = document.querySelectorAll('.alert');
             alerts.forEach(alert => {
